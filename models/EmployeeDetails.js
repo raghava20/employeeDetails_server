@@ -18,7 +18,7 @@ const employeeDetailsSchema = new Schema({
     },
     gender: {
         type: String,
-        enum: ["male,female"],
+        enum: ["male", "female"],
         required: true
     },
     address: {
@@ -43,10 +43,10 @@ const employeeDetailsSchema = new Schema({
         type: String,
         required: true
     },
-    martialStatus: {
+    maritalStatus: {
         type: String,
         required: true,
-        enum: ["married", "unmarried"],
+        enum: ["married", "unMarried"],
     },
     jobTitle: {
         type: String

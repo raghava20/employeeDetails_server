@@ -20,6 +20,6 @@ app.get("/", (req, res) => {
 })
 
 app.use("/", authenticationRouter)
-app.use("/details", employeeRouter)
+app.use("/employee-details", employeeRouter)
 
 app.listen(PORT, () => console.log('listening on port', PORT))

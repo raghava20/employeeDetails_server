@@ -4,15 +4,15 @@ import { auth } from "../middleware/auth.js";
 
 const router = express.Router()
 
-router.post('/', signupUser)
+router.post('/signup', signupUser)
 
 router.post('/login', loginUser)
 
 router.get('/verify/:token', verifyUser)
 
-router.put('/forgotPassword', forgotPassword)
+router.put('/forgot-password', forgotPassword)
 
-router.put('/resetPassword', resetPassword)
+router.put('/reset-password', resetPassword)
 
 router.get('/auth', auth, getLoggedInUser)
 

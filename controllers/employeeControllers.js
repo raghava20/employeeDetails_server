@@ -1,6 +1,6 @@
 import { EmployeeDetails } from "../models/EmployeeDetails.js"
 
-
+// get all employees details
 export const getAllEmployeeDetails = async (req, res) => {
     try {
         const response = await EmployeeDetails.find()
@@ -11,6 +11,7 @@ export const getAllEmployeeDetails = async (req, res) => {
     }
 }
 
+// create new employee details
 export const postEmployeeDetails = async (req, res) => {
     try {
         const { firstName, lastName, gender, address, email, dateOfBirth, contactNumber, department, jobTitle, maritalStatus, bankDetails } = req.body;
@@ -38,6 +39,7 @@ export const postEmployeeDetails = async (req, res) => {
 
 }
 
+// update the employee details using id
 export const updateEmployeeDetails = async (req, res) => {
     try {
         const { id } = req.params;
@@ -65,6 +67,7 @@ export const updateEmployeeDetails = async (req, res) => {
     }
 }
 
+// delete the employee details using id
 export const deleteEmployeeDetails = async (req, res) => {
     try {
         const { id } = req.params;

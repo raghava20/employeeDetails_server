@@ -15,16 +15,25 @@ const accountSchema = new Schema({
     },
     password: {
         type: String,
-        require: true
+        required: true
     },
+    accountVerifyToken: String,
     isAccountVerified: {
         type: Boolean,
         default: false
     },
-    accountVerifyToken: String,
     date: {
         type: Date,
         default: Date.now()
+    },
+    role: {
+        type: String,
+        default: "employee",
+        enum: ["employee", "admin"]
+    },
+    resetLink: {
+        type: String,
+        default: ""
     }
 
 })

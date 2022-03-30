@@ -9,7 +9,9 @@ dotenv.config()
 const CLIENT_URL = "http://localhost:3000"
 const SERVER_URL = "http://localhost:8000"
 
+// sendgrid package for email notification
 const sendGrid = async (email, token, mode) => {
+
     sgMail.setApiKey(process.env.SENDGRID_API_KEY)
 
     if (mode === "signup") {
@@ -17,39 +19,59 @@ const sendGrid = async (email, token, mode) => {
         const message = {
             to: email,
             from: process.env.SENDGRID_ACC_EMAIL,
+            subject: "Verify your Account on Employee Details",
             html: `<p> Please verify your email by clicking the link below.</p>
-                    <a href="${SERVER_URL}/verify/${token}">Link</a>`
+                    <a href="${SERVER_URL}/verify/${token}" target="_blank"> Link </a>
+                    `
         }
-        return await sgMail.send(message)
+        try {
+            await sgMail.send(message)
+            return "success"
+        }
+        catch (err) {
+            console.log(err)
+        }
     }
 
     const message = {
         to: email,
         from: process.env.SENDGRID_ACC_EMAIL,
+        subject: "Reset your password",
         html: `<p> Please click the below link to reset your password.</p>
-                <a href="${CLIENT_URL}/reset/${token}"></a>`
+                <a href="${CLIENT_URL}/reset/${token}" target="_blank"> reset link</a>
+                `
     }
-
-    return await sgMail.send(message)
+    try {
+        await sgMail.send(message)
+        return "success"
+    }
+    catch (err) {
+        console.log(err)
+    }
 }
 
+// signup the user
 export const signupUser = async (req, res) => {
     try {
         const { email, name, password } = req.body;
-        const response = await Account.findOne(email)
-        if (!response) return res.status(404).json({ message: "Email already exists." })
+        const response = await Account.findOne({ email })
 
-        const salt = bcrypt.genSalt(10)
-        const hashedPassword = bcrypt.hash(password, salt)
+        if (response) return res.status(404).json({ message: "Email already exists." })
 
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(password, salt)
 
         const token = jwt.sign({ id: email }, process.env.JWT_SECRET_KEY, { expiresIn: "30m" })
+        console.log(token)
 
-        const mail = await sendGrid(email, token, mode = "signup")
+        const mode = "signup"
+        const mail = await sendGrid(email, token, mode)
+        console.log(mail)
 
         if (!mail) return res.status(400).json({ message: "Sendgrid error" })
 
-        await Account.insertOne({ email, name, password: hashedPassword })
+        const account = new Account({ email, name, password: hashedPassword, accountVerifyToken: token })
+        await account.save()
 
         res.status(200).json({ message: "Account Registered,please verify your email before logging in" })
     }
@@ -58,15 +80,17 @@ export const signupUser = async (req, res) => {
     }
 }
 
-export const verifyUser = (req, res) => {
+// verify the user before logging in
+export const verifyUser = async (req, res) => {
     const { token } = req.params;
     try {
-        jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, res) => {
+        await jwt.verify(token, process.env.JWT_SECRET_KEY, async (err, result) => {
             if (err) return res.status(500).json({ message: "Token expired or Invalid Token" })
 
             const tokenVerify = await Account.findOne({ accountVerifyToken: token })
+
             if (!tokenVerify) return res.status(500).json({ message: "Token does not exist" })
-            await Account.updateOne({ isVerifyToken: true, accountVerifyToken: undefined })
+            await Account.findOneAndUpdate({ accountVerifyToken: token }, { $set: { isAccountVerified: true, accountVerifyToken: "" } })
 
             res.status(200).json({ message: "Account Verified Successfully" })
         })
@@ -76,10 +100,11 @@ export const verifyUser = (req, res) => {
     }
 }
 
+// login the user
 export const loginUser = async (req, res) => {
     const { email, password } = req.body;
     try {
-        const response = await Account.findOne(email)
+        const response = await Account.findOne({ email })
         if (!response) return res.status(403).json({ message: "Invalid Credentials" })
 
         const passResponse = await bcrypt.compare(password, response.password)
@@ -88,7 +113,7 @@ export const loginUser = async (req, res) => {
 
         const token = jwt.sign({ accountId: response._id }, process.env.JWT_SECRET_KEY, { expiresIn: "8hr" })
 
-        res.status(200).json({ token })
+        res.status(200).json({ token, role: response.role })
 
     }
     catch (err) {
@@ -96,6 +121,7 @@ export const loginUser = async (req, res) => {
     }
 }
 
+// forgot password for valid emailid
 export const forgotPassword = async (req, res) => {
     const { email } = req.body;
     try {
@@ -118,14 +144,15 @@ export const forgotPassword = async (req, res) => {
     }
 }
 
+// resetPassword 
 export const resetPassword = async (req, res) => {
     const { resetLink, password } = req.body;
     try {
         const response = await Account.findOne({ resetLink })
         if (!response) return res.status(403).json({ message: "Invalid token or Token Expired" })
 
-        const salt = bcrypt.genSalt(10)
-        const hashedPassword = bcrypt.hash(password, salt)
+        const salt = await bcrypt.genSalt(10)
+        const hashedPassword = await bcrypt.hash(password, salt)
 
         await response.updateOne({ resetLink }, { $set: { resetLink: "", password: hashedPassword } })
 
@@ -136,7 +163,7 @@ export const resetPassword = async (req, res) => {
     }
 }
 
-
+// get the logged in user details
 export const getLoggedInUser = async (req, res) => {
     try {
         const response = await Account.findById(req.user)
