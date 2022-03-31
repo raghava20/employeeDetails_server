@@ -11,6 +11,18 @@ export const getAllEmployeeDetails = async (req, res) => {
     }
 }
 
+// get employee details by id
+export const getEmployeeDetailsById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const response = await EmployeeDetails.findOne({ _id: id })
+        res.status(200).json({ response })
+    }
+    catch (err) {
+        res.status(500).json({ message: err })
+    }
+}
+
 // create new employee details
 export const postEmployeeDetails = async (req, res) => {
     try {
@@ -59,7 +71,8 @@ export const updateEmployeeDetails = async (req, res) => {
             maritalStatus,
             bankDetails
         }
-        await EmployeeDetails.findOneAndUpdate({ account: id }, { $set: { accountDetails } }, { new: true })
+        await EmployeeDetails.findOneAndUpdate({ _id: id }, { $set: accountDetails })
+
         res.status(200).json({ message: "Updated details successfully" })
     }
     catch (err) {
@@ -71,7 +84,7 @@ export const updateEmployeeDetails = async (req, res) => {
 export const deleteEmployeeDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        await EmployeeDetails.findOneAndDelete({ account: id })
+        await EmployeeDetails.findOneAndDelete({ _id: id })
         res.status(200).json({ message: "Deleted details successfully" })
     }
     catch (err) {

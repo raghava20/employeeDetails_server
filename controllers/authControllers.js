@@ -21,7 +21,7 @@ const sendGrid = async (email, token, mode) => {
             from: process.env.SENDGRID_ACC_EMAIL,
             subject: "Verify your Account on Employee Details",
             html: `<p> Please verify your email by clicking the link below.</p>
-                    <a href="${SERVER_URL}/verify/${token}" target="_blank"> Link </a>
+                    <a> ${SERVER_URL}/verify/${token} </a>
                     `
         }
         try {
@@ -38,7 +38,7 @@ const sendGrid = async (email, token, mode) => {
         from: process.env.SENDGRID_ACC_EMAIL,
         subject: "Reset your password",
         html: `<p> Please click the below link to reset your password.</p>
-                <a href="${CLIENT_URL}/reset/${token}" target="_blank"> reset link</a>
+                <a>${CLIENT_URL}/reset/${token}</a>
                 `
     }
     try {
@@ -125,12 +125,14 @@ export const loginUser = async (req, res) => {
 export const forgotPassword = async (req, res) => {
     const { email } = req.body;
     try {
-        const response = await Account.findOne(email)
+        const response = await Account.findOne({ email })
         if (!response) return res.status(401).json({ message: "Email does not exist" })
 
         const token = jwt.sign({ accountId: response._id }, process.env.JWT_SECRET_KEY, { expiresIn: "10m" })
+        console.log(token)
 
-        const mail = await sendGrid(email, token, mode = "forgotPassword")
+        const mode = "forgotPassword"
+        const mail = await sendGrid(email, token, mode)
 
         if (!mail) return res.status(400).json({ message: "Sendgrid error" })
 
@@ -148,13 +150,15 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
     const { resetLink, password } = req.body;
     try {
+        console.log(resetLink)
         const response = await Account.findOne({ resetLink })
         if (!response) return res.status(403).json({ message: "Invalid token or Token Expired" })
 
+        console.log(response)
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        await response.updateOne({ resetLink }, { $set: { resetLink: "", password: hashedPassword } })
+        await Account.updateOne({ resetLink }, { $set: { resetLink: "", password: hashedPassword } })
 
         res.status(200).json({ message: "Password changed successfully" })
     }
