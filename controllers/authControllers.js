@@ -6,8 +6,8 @@ import { Account } from "../models/Account.js"
 
 dotenv.config()
 
-const CLIENT_URL = "http://localhost:3000"
-const SERVER_URL = "http://localhost:8000"
+const CLIENT_URL = "https://preeminent-cannoli-a4d009.netlify.app"
+const SERVER_URL = "https://employee-details--app.herokuapp.com"
 
 // sendgrid package for email notification
 const sendGrid = async (email, token, mode) => {
