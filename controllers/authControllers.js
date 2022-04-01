@@ -3,6 +3,9 @@ import sgMail from "@sendgrid/mail"
 import dotenv from "dotenv"
 import bcrypt from "bcrypt"
 import { Account } from "../models/Account.js"
+import { OAuth2Client } from "google-auth-library"
+
+const client = new OAuth2Client("131234865270-aivpq1o8ag1rrsq48p7jgnbb4laoie1a.apps.googleusercontent.com")
 
 dotenv.config()
 
@@ -172,6 +175,40 @@ export const getLoggedInUser = async (req, res) => {
     try {
         const response = await Account.findById(req.user)
         res.status(200).json({ user: response })
+    }
+    catch (err) {
+        res.status(500).json({ message: err })
+    }
+}
+
+// login with google
+export const googleLogin = async (req, res) => {
+    try {
+        const { tokenId } = req.body;
+        const response = await client.verifyIdToken({ idToken: tokenId, audience: "131234865270-aivpq1o8ag1rrsq48p7jgnbb4laoie1a.apps.googleusercontent.com" })
+        const { email_verified, name, email, at_hash } = response.payload;
+        if (email_verified) {
+            Account.findOne({ email }).exec(async (err, user) => {
+                if (err) return res.status(400).json({ message: "Something went wrong." })
+
+
+                if (user) {
+                    const token = jwt.sign({ accountId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "8hr" })
+
+                    return res.status(200).json({ token })
+                }
+
+                try {
+                    const account = new Account({ email, name, password: at_hash, isAccountVerified: email_verified })
+                    await account.save()
+                    const token = jwt.sign({ accountId: account._id }, process.env.JWT_SECRET_KEY, { expiresIn: "8hr" })
+
+                    return res.status(200).json({ token })
+                } catch (error) {
+                    res.status(500).json({ message: err })
+                }
+            })
+        }
     }
     catch (err) {
         res.status(500).json({ message: err })
