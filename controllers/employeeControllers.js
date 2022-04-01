@@ -1,3 +1,4 @@
+import { Departments } from "../models/Departments.js"
 import { EmployeeDetails } from "../models/EmployeeDetails.js"
 
 // get all employees details
@@ -89,5 +90,36 @@ export const deleteEmployeeDetails = async (req, res) => {
     }
     catch (err) {
         res.status(500).json({ message: err })
+    }
+}
+
+// get all the departments created by the employee
+export const getDepartments = async (req, res) => {
+    console.log("trigger")
+    try {
+        console.log("object");
+        const response = await Departments.find()
+        console.log(response)
+        res.status(200).json({ response })
+    }
+    catch (err) {
+        res.status(500).json({ message: err })
+    }
+}
+
+// create the departments
+export const postDepartments = async (req, res) => {
+    try {
+        const department = req.body;
+        const response = await Departments.find()
+        if (response.filter(depart => depart.department === department.department).length > 0) return res.status(403).json({ message: "Already added the department" })
+
+        const result = new Departments(department)
+        await result.save()
+        res.status(200).json({ message: "Added department" })
+    }
+    catch (err) {
+        res.status(500).json({ message: err })
+
     }
 }
