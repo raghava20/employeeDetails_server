@@ -4,6 +4,7 @@ import dotenv from "dotenv"
 import bcrypt from "bcrypt"
 import { Account } from "../models/Account.js"
 import { OAuth2Client } from "google-auth-library"
+import fetch from 'node-fetch';
 
 const client = new OAuth2Client("131234865270-aivpq1o8ag1rrsq48p7jgnbb4laoie1a.apps.googleusercontent.com")
 
@@ -213,4 +214,44 @@ export const googleLogin = async (req, res) => {
     catch (err) {
         res.status(500).json({ message: err })
     }
+}
+
+// login user through facebook
+export const facebookLogin = (req, res) => {
+    const { userID, accessToken } = req.body;
+
+    let urlGraphFacebook = `https://graph.facebook.com/v13.0/${userID}/?fields=id,name,email&access_token=${accessToken}`
+
+    fetch(urlGraphFacebook, {
+        method: 'GET'
+    })
+        .then(response => response.json())
+        .then(response => {
+            const { email, name } = response;
+
+            Account.findOne({ email }).exec(async (err, user) => {
+                if (err) return res.status(400).json({ message: "Something went wrong." })
+
+
+                if (user) {
+                    const token = jwt.sign({ accountId: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "8hr" })
+
+                    return res.status(200).json({ token })
+                }
+                try {
+                    let password = email + process.env.JWT_SECRET_KEY;
+
+                    const salt = await bcrypt.genSalt(10)
+                    const hashedPassword = await bcrypt.hash(password, salt)
+
+                    const account = new Account({ email, name, password: hashedPassword, isAccountVerified: true })
+                    await account.save()
+                    const token = jwt.sign({ accountId: account._id }, process.env.JWT_SECRET_KEY, { expiresIn: "8hr" })
+
+                    return res.status(200).json({ token })
+                } catch (error) {
+                    res.status(500).json({ message: err })
+                }
+            })
+        })
 }
